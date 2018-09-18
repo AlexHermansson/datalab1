@@ -1,8 +1,11 @@
 import java.nio.file.*;
 import java.io.IOException;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Set;
+
+import org.apache.hadoop.io.Text;
 
 public class Test {
     // This helper function parses the stackoverflow into a Map for us.
@@ -29,14 +32,23 @@ public class Test {
   	}
 
     public static void main(String[] args) throws Exception {
+
+    	Text tempId = new Text();
+
+    	TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
     	// File file = new File("/Users/alexhermansson/Documents/KTH/DataIntensive/lab1/src/topten/data/users.xml");
     	String inputString = readFileAsString("/Users/alexhermansson/Documents/KTH/DataIntensive/lab1/src/topten/data/test.xml");
     	Map<String, String> ourMap = transformXmlToMap(inputString);
-    	System.out.println(ourMap.keySet());
 
+    	String id = ourMap.get("Id");
+    	System.out.println("Id: " + id);
+    	tempId.set(id);
 
+    	Integer rep = Integer.parseInt(ourMap.get("Reputation"));
+    	System.out.println("Reputation: " + rep);
 
-
+    	repToRecordMap.put(rep, tempId);
+    	System.out.println("reputation map: " + repToRecordMap);
 
     }
 }

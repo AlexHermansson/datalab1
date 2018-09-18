@@ -19,11 +19,13 @@ public class WordCount {
 		private final static IntWritable one = new IntWritable(1);
 		private Text word = new Text();
 
+		// Input is a whole line stored in variable 'value'. 'context' is the output collector
+		// What does the variable 'key' do?
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 		    StringTokenizer itr = new StringTokenizer(value.toString());
 		    while (itr.hasMoreTokens()) {
-			word.set(itr.nextToken());
-			context.write(word, one);
+				word.set(itr.nextToken());
+				context.write(word, one);
 		    }
 		}
     }
@@ -31,10 +33,11 @@ public class WordCount {
     public static class IntSumReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
 		private IntWritable result = new IntWritable();
 
+		// This method will be fed (apple, [1, 1, 1]), i.e. all values available for each key
 		public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
 		    int sum = 0;
 		    for (IntWritable val : values) {
-			sum += val.get();
+				sum += val.get();
 		    }
 	      
 		    result.set(sum);
@@ -43,20 +46,20 @@ public class WordCount {
     }
 
     public static void main(String[] args) throws Exception {
-	Configuration conf = new Configuration();
-	Job job = Job.getInstance(conf, "word count");
-	job.setJarByClass(WordCount.class);
-    
-	job.setMapperClass(TokenizerMapper.class);
-	job.setCombinerClass(IntSumReducer.class);
-	job.setReducerClass(IntSumReducer.class);
-    
-	job.setOutputKeyClass(Text.class);
-	job.setOutputValueClass(IntWritable.class);
-    
-	FileInputFormat.addInputPath(job, new Path(args[0]));
-	FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    
-	System.exit(job.waitForCompletion(true) ? 0 : 1);
+		Configuration conf = new Configuration();
+		Job job = Job.getInstance(conf, "word count");
+		job.setJarByClass(WordCount.class);
+	    
+		job.setMapperClass(TokenizerMapper.class);
+		job.setCombinerClass(IntSumReducer.class);
+		job.setReducerClass(IntSumReducer.class);
+	    
+	    // These two lines show that the mapper emits <Text, IntWritable>
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
+	    
+		FileInputFormat.addInputPath(job, new Path(args[0]));
+	    
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
