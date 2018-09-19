@@ -31,7 +31,8 @@ public class TopTen {
 			String val = tokens[i + 1];
 			map.put(key.substring(0, key.length() - 1), val);
 		    }
-		} catch (StringIndexOutOfBoundsException e) {
+		} 
+		catch (StringIndexOutOfBoundsException e) {
 		    System.err.println(xml);
 		}
 
@@ -49,20 +50,17 @@ public class TopTen {
 		    String id = theMap.get("Id");
 		    String rep = theMap.get("Reputation");
 		    boolean noNulls = ((id != null) && (rep != null));
-
+		    
 		    if (noNulls) {
 			    repToRecordMap.put(new Integer(rep), new Text(id));
 		    }
-
 		}
 
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 		    // Output our ten records to the reducers with a null key
-
 	    	System.out.println("Number of elements in cleanup: " + repToRecordMap.size());
 
 		    for (int i = 0; i < 10; i++) {
-
 		    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
 		    	String rep = lastEntry.getKey().toString();
 		    	String id = lastEntry.getValue().toString();
@@ -82,32 +80,31 @@ public class TopTen {
 		private TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
 		public void reduce(NullWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+			putIdAndReputationInTree(values);
+			System.out.println("Elements in tree in reducer after: " + repToRecordMap.size());
+			putTopTenInTable(context);
+		    System.out.println("Done with reduce"); 
+		}
 
-			System.out.println("in reduce");
-
+		private void putIdAndReputationInTree(Iterable<Text> values) {
 			for (Text idRep : values) {
 				String id = idRep.toString().split(" ")[0];
 				String rep = idRep.toString().split(" ")[1];
 				repToRecordMap.put(new Integer(rep), new Text(id));
 			}
+		}
 
-			System.out.println("Elements in tree in reducer after: " + repToRecordMap.size());
-
+		private void putTopTenInTable(Context context) throws IOException, InterruptedException {
 			for (int i = 1; i < 11; i++) {
 				Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
 		    	String rep = lastEntry.getKey().toString();
 		    	String id = lastEntry.getValue().toString();
 
-		    	// Put stuff into the table
 		    	Put insHBase = new Put(Bytes.toBytes(i));
 		    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("id"), Bytes.toBytes(id));
 		    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("rep"), Bytes.toBytes(rep));
 		    	context.write(null, insHBase);
-
-		    }
-
-		    System.out.println("Done with reduce"); 
-
+			}
 		}
     }
 
@@ -118,16 +115,12 @@ public class TopTen {
     	job.setMapperClass(TopTenMapper.class);
     	job.setJarByClass(TopTen.class);
     	job.setNumReduceTasks(1);
-
     	job.setMapOutputKeyClass(NullWritable.class);
     	job.setMapOutputValueClass(Text.class);
-
 
     	FileInputFormat.addInputPath(job, new Path(args[0]));
     	TableMapReduceUtil.initTableReducerJob("topten", TopTenReducer.class, job);
 
 		job.waitForCompletion(true);
-		//System.exit(job.waitForCompletion(true) ? 0 : 1);
-
     }
 }
