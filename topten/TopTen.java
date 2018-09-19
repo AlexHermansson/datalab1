@@ -1,33 +1,24 @@
 package topten;
 
-import java.nio.file.*;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.HashMap;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
+
 
 public class TopTen {
     // This helper function parses the stackoverflow into a Map for us.
@@ -48,10 +39,10 @@ public class TopTen {
     }
 
     public static class TopTenMapper extends Mapper<Object, Text, NullWritable, Text> {
-	// Stores a map of user reputation to the record
+		// Stores a map of user reputation to the record
 		TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
-		// value comes as a line from the input file
+		// value comes as a line from the input file (one user).
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
 		    Map<String, String> theMap = transformXmlToMap(value.toString());
@@ -68,71 +59,55 @@ public class TopTen {
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 		    // Output our ten records to the reducers with a null key
 
-		    try {
+	    	System.out.println("Number of elements in cleanup: " + repToRecordMap.size());
 
-		    	System.out.println("Number of elements in cleanup: " + repToRecordMap.size());
+		    for (int i = 0; i < 10; i++) {
 
-			    //NullWritable nW = new NullWritable();
-			    for (int i = 0; i < 10; i++) {
+		    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
+		    	String rep = lastEntry.getKey().toString();
+		    	String id = lastEntry.getValue().toString();
+		    	Text idRep = new Text(id + " " + rep);
 
-			    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
-			    	String rep = lastEntry.getKey().toString();
-			    	String id = lastEntry.getValue().toString();
-			    	Text idRep = new Text(id + " " + rep);
+		    	System.out.println("idrep: " + idRep);
+		    	System.out.println("Number of elements in tree after: " + repToRecordMap.size());
 
-			    	System.out.println("idrep: " + idRep);
-			    	System.out.println("Number of elements in tree after: " + repToRecordMap.size());
-
-
-			    	context.write(NullWritable.get(), idRep);
-			    	
-			    }
-		    }
-
-		    catch (Exception e) {
-		    	e.printStackTrace();
+		    	context.write(NullWritable.get(), idRep);
+		    	
 		    }
 		}
     }
 
     public static class TopTenReducer extends TableReducer<NullWritable, Text, NullWritable> {
-	// Stores a map of user reputation to the record
+		// Stores a map of user reputation to the record
 		private TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
 		public void reduce(NullWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 
-			try {
+			System.out.println("in reduce");
 
-				System.out.println("in reduce");
+			for (Text idRep : values) {
+				String id = idRep.toString().split(" ")[0];
+				String rep = idRep.toString().split(" ")[1];
+				repToRecordMap.put(new Integer(rep), new Text(id));
+			}
 
-				for (Text idRep : values) {
-					String id = idRep.toString().split(" ")[0];
-					String rep = idRep.toString().split(" ")[1];
-					repToRecordMap.put(new Integer(rep), new Text(id));
-				}
+			System.out.println("Elements in tree in reducer after: " + repToRecordMap.size());
 
-				System.out.println("Elements in tree in reducer after: " + repToRecordMap.size());
+			for (int i = 1; i < 11; i++) {
+				Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
+		    	String rep = lastEntry.getKey().toString();
+		    	String id = lastEntry.getValue().toString();
 
-				for (int i = 1; i < 11; i++) {
-					Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
-			    	String rep = lastEntry.getKey().toString();
-			    	String id = lastEntry.getValue().toString();
+		    	// Put stuff into the table
+		    	Put insHBase = new Put(Bytes.toBytes(i));
+		    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("id"), Bytes.toBytes(id));
+		    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("rep"), Bytes.toBytes(rep));
+		    	context.write(null, insHBase);
 
-			    	// Put stuff into the table
-			    	Put insHBase = new Put(Bytes.toBytes(i));
-			    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("id"), Bytes.toBytes(id));
-			    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("rep"), Bytes.toBytes(rep));
-			    	context.write(null, insHBase);
-
-			    }
-
-			    System.out.println("Done with reduce");
-			    
-		    } 
-
-		    catch (Exception e) {
-		    	e.printStackTrace();
 		    }
+
+		    System.out.println("Done with reduce"); 
+
 		}
     }
 
