@@ -54,19 +54,13 @@ public class TopTen {
 		// value comes as a line from the input file
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
-			try {
+		    Map<String, String> theMap = transformXmlToMap(value.toString());
+		    String id = theMap.get("Id");
+		    String rep = theMap.get("Reputation");
+		    boolean noNulls = ((id != null) && (rep != null));
 
-			    Map<String, String> theMap = transformXmlToMap(value.toString());
-			    String id = theMap.get("Id");
-
-			    if (id != null) {
-				    String rep = theMap.get("Reputation");
-				    repToRecordMap.put(new Integer(rep), new Text(id));
-			    }
-		    }
-
-		    catch (Exception e) {
-		    	e.printStackTrace();
+		    if (noNulls) {
+			    repToRecordMap.put(new Integer(rep), new Text(id));
 		    }
 
 		}
