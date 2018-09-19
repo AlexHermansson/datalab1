@@ -92,7 +92,9 @@ public class TopTen {
 		}
     }
 
-    public static class TopTenReducer extends TableReducer<NullWritable, Text, NullWritable> {
+
+    public static class TopTenReducer extends Reducer<NullWritable, Text, Text, Text> {
+    //public static class TopTenReducer extends TableReducer<NullWritable, Text, NullWritable> {
 	// Stores a map of user reputation to the record
 		private TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
@@ -112,10 +114,15 @@ public class TopTen {
 			    	String id = repToRecordMap.pollLastEntry().getValue().toString();
 
 			    	// Put stuff into the table
+			    	/*
 			    	Put insHBase = new Put(Bytes.toBytes(i));
 			    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("id"), Bytes.toBytes(id));
 			    	insHBase.addColumn(Bytes.toBytes("info"), Bytes.toBytes("rep"), Bytes.toBytes(rep));
 			    	context.write(null, insHBase);
+			    	*/
+
+			    	context.write(new Text(rep), new Text(id));
+
 			    }
 			    
 		    } 
@@ -128,20 +135,28 @@ public class TopTen {
 
     public static void main(String[] args) throws Exception {
 		//<FILL IN>
-    	Configuration conf = HBaseConfiguration.create();
+    	//Configuration conf = HBaseConfiguration.create();
+    	Configuration conf = new Configuration();
     	Job job = Job.getInstance(conf);
 
     	job.setMapperClass(TopTenMapper.class);
-    	job.setJarByClass(TopTen.class);
+    	job.setCombinerClass(TopTenReducer.class);
+    	job.setReducerClass(TopTenReducer.class);
+
+    	job.setOutputKeyClass(Text.class);
+    	job.setOutputValueClass(Text.class);
+
+    	//job.setJarByClass(TopTen.class);
     	job.setNumReduceTasks(1);
 
     	//Define output table
-    	TableMapReduceUtil.initTableReducerJob("topten_output", TopTenReducer.class, job);
+    	//TableMapReduceUtil.initTableReducerJob("topten", TopTenReducer.class, job);
 
     	FileInputFormat.addInputPath(job, new Path(args[0]));
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-		job.waitForCompletion(true);
+		//job.waitForCompletion(true);
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
 
     }
 }
