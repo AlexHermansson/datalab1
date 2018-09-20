@@ -50,7 +50,7 @@ public class TopTen {
 		    String id = theMap.get("Id");
 		    String rep = theMap.get("Reputation");
 		    boolean noNulls = ((id != null) && (rep != null));
-		    
+
 		    if (noNulls) {
 			    repToRecordMap.put(new Integer(rep), new Text(id));
 		    }
@@ -58,16 +58,11 @@ public class TopTen {
 
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 		    // Output our ten records to the reducers with a null key
-	    	System.out.println("Number of elements in cleanup: " + repToRecordMap.size());
-
 		    for (int i = 0; i < 10; i++) {
 		    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
 		    	String rep = lastEntry.getKey().toString();
 		    	String id = lastEntry.getValue().toString();
 		    	Text idRep = new Text(id + " " + rep);
-
-		    	System.out.println("idrep: " + idRep);
-		    	System.out.println("Number of elements in tree after: " + repToRecordMap.size());
 
 		    	context.write(NullWritable.get(), idRep);
 		    	
@@ -81,9 +76,7 @@ public class TopTen {
 
 		public void reduce(NullWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 			putIdAndReputationInTree(values);
-			System.out.println("Elements in tree in reducer after: " + repToRecordMap.size());
 			putTopTenInTable(context);
-		    System.out.println("Done with reduce"); 
 		}
 
 		private void putIdAndReputationInTree(Iterable<Text> values) {
