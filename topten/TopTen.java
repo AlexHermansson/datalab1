@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.HashMap;
+import java.util.StringTokenizer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -35,7 +36,6 @@ public class TopTen {
 		catch (StringIndexOutOfBoundsException e) {
 		    System.err.println(xml);
 		}
-
 		return map;
     }
 
@@ -52,7 +52,12 @@ public class TopTen {
 		    boolean noNulls = ((id != null) && (rep != null));
 
 		    if (noNulls) {
-			    repToRecordMap.put(new Integer(rep), new Text(id));
+		    	Integer intRep = new Integer(rep);
+		    	if (repToRecordMap.containsKey(intRep)) {
+			    	String existingId =  repToRecordMap.get(intRep).toString();
+			    	id += " " + existingId;
+			    }
+			    repToRecordMap.put(intRep, new Text(id));
 		    }
 		}
 
@@ -65,7 +70,6 @@ public class TopTen {
 		    	Text idRep = new Text(id + " " + rep);
 
 		    	context.write(NullWritable.get(), idRep);
-		    	
 		    }
 		}
     }
@@ -75,17 +79,17 @@ public class TopTen {
 		private TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
 		public void reduce(NullWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-			putIdAndReputationInTree(values);
+			putIdsAndReputationInTree(values);
 			putTopTenInTable(context);
 		}
 
-		private void putIdAndReputationInTree(Iterable<Text> values) {
+		private void putIdsAndReputationInTree(Iterable<Text> values) {
 			for (Text idRep : values) {
 
 				StringTokenizer itr = new StringTokenizer(idRep.toString());
 				String ids = itr.nextToken();
 				while (itr.countTokens() > 1) {
-					ids += " " + itr.nextToken();
+					ids += ", " + itr.nextToken();
 				}
 
 				String rep = itr.nextToken();
