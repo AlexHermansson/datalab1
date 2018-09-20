@@ -81,9 +81,15 @@ public class TopTen {
 
 		private void putIdAndReputationInTree(Iterable<Text> values) {
 			for (Text idRep : values) {
-				String id = idRep.toString().split(" ")[0];
-				String rep = idRep.toString().split(" ")[1];
-				repToRecordMap.put(new Integer(rep), new Text(id));
+
+				StringTokenizer itr = new StringTokenizer(idRep.toString());
+				String ids = itr.nextToken();
+				while (itr.countTokens() > 1) {
+					ids += " " + itr.nextToken();
+				}
+
+				String rep = itr.nextToken();
+				repToRecordMap.put(new Integer(rep), new Text(ids));
 			}
 		}
 
