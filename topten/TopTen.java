@@ -43,10 +43,12 @@ public class TopTen {
 		// Stores a map of user reputation to the record
 		TreeMap<Integer, Text> repToRecordMap = new TreeMap<Integer, Text>();
 
-		// value comes as a line from the input file (one user).
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+			putIdsAndReputationInTree(value);
+		}
 
-		    Map<String, String> theMap = transformXmlToMap(value.toString());
+		private void putIdsAndReputationInTree(Text userInformation) {
+			Map<String, String> theMap = transformXmlToMap(userInformation.toString());
 		    String id = theMap.get("Id");
 		    String rep = theMap.get("Reputation");
 		    boolean noNulls = ((id != null) && (rep != null));
