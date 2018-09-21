@@ -67,9 +67,9 @@ public class TopTen {
 		    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
 		    	String rep = lastEntry.getKey().toString();
 		    	String id = lastEntry.getValue().toString();
-		    	Text idRep = new Text(id + " " + rep);
+		    	Text repId = new Text(rep + " " + id);
 
-		    	context.write(NullWritable.get(), idRep);
+		    	context.write(NullWritable.get(), repId);
 		    }
 		}
     }
@@ -84,15 +84,15 @@ public class TopTen {
 		}
 
 		private void putIdsAndReputationInTree(Iterable<Text> values) {
-			for (Text idRep : values) {
+			for (Text repId : values) {
 
-				StringTokenizer itr = new StringTokenizer(idRep.toString());
+				StringTokenizer itr = new StringTokenizer(repId.toString());
+				String rep = itr.nextToken();
 				String ids = itr.nextToken();
-				while (itr.countTokens() > 1) {
+				while (itr.hasMoreTokens()) {
 					ids += ", " + itr.nextToken();
 				}
 
-				String rep = itr.nextToken();
 				repToRecordMap.put(new Integer(rep), new Text(ids));
 			}
 		}
