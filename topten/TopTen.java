@@ -63,7 +63,11 @@ public class TopTen {
 
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 		    // Output our ten records to the reducers with a null key
-		    for (int i = 0; i < 10; i++) {
+		    putTopTenInContext(context);
+		}
+
+		private void putTopTenInContext(Context context) throws IOException, InterruptedException {
+			for (int i = 0; i < 10; i++) {
 		    	Map.Entry<Integer, Text> lastEntry = repToRecordMap.pollLastEntry();
 		    	String rep = lastEntry.getKey().toString();
 		    	String id = lastEntry.getValue().toString();
